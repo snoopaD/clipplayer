@@ -146,7 +146,9 @@ function next(){
   // Backup timer in case the load signal never arrives.
   timer = setTimeout(next, (c.duration + buffer + 8) * 1000);
   // Restart the countdown once the clip has actually loaded.
+  // Only the first load counts, so later reloads can't keep pushing it back.
   frame.onload = () => {
+    frame.onload = null;
     clearTimeout(timer);
     timer = setTimeout(next, (c.duration + buffer) * 1000);
   };
