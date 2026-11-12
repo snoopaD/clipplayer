@@ -102,7 +102,8 @@ PAGE = r"""<!doctype html>
 <html><head><meta charset="utf-8"><title>Random Clips</title>
 <style>
   html,body{margin:0;height:100%;background:#0e0e10;color:#efeff1;font-family:system-ui,sans-serif;overflow:hidden}
-  iframe{position:fixed;inset:0;width:100%;height:100%;border:0}
+  iframe{position:fixed;inset:0;width:100%;height:100%;border:0;opacity:0}
+  iframe.show{opacity:1}
   #start{position:fixed;inset:0;display:flex;flex-direction:column;gap:12px;align-items:center;justify-content:center;background:#0e0e10;z-index:3}
   #start button{font-size:20px;padding:14px 32px;border:0;border-radius:8px;background:#9146ff;color:#fff;cursor:pointer}
   #info{position:fixed;left:16px;bottom:16px;z-index:2;background:rgba(0,0,0,.65);padding:8px 14px;border-radius:8px;font-size:16px;max-width:70%;transition:opacity .6s}
@@ -116,7 +117,7 @@ const params = new URLSearchParams(location.search);
 const muted = params.get("muted") === "1";
 const showTitle = params.get("title") !== "0";
 const autostart = params.get("autostart") === "1";
-let clips = [], bag = [], last = null, timer = null, started = false;
+let clips = [], bag = [], last = null, timer = null, revealTimer = null, started = false;
 
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 function pick(){
@@ -130,6 +131,8 @@ function next(){
   if(!clips.length) return;
   clearTimeout(timer);
   const c = pick();
+  document.getElementById("player").classList.remove("show");
+  clearTimeout(revealTimer);
   document.getElementById("player").src =
     `https://clips.twitch.tv/embed?clip=${encodeURIComponent(c.id)}&parent=${location.hostname}&autoplay=true&muted=${muted}`;
   const info = document.getElementById("info");
@@ -143,12 +146,17 @@ function next(){
   }
   const buffer = parseFloat(params.get("buffer")) || 4;
   const frame = document.getElementById("player");
+  const reveal = params.has("reveal") ? parseFloat(params.get("reveal")) : 1;
+  // Show the clip once it has loaded (hides the play icon while it starts).
+  revealTimer = setTimeout(() => frame.classList.add("show"), 6000); // backup
   // Backup timer in case the load signal never arrives.
   timer = setTimeout(next, (c.duration + buffer + 8) * 1000);
   // Restart the countdown once the clip has actually loaded.
   // Only the first load counts, so later reloads can't keep pushing it back.
   frame.onload = () => {
     frame.onload = null;
+    clearTimeout(revealTimer);
+    revealTimer = setTimeout(() => frame.classList.add("show"), reveal * 1000);
     clearTimeout(timer);
     timer = setTimeout(next, (c.duration + buffer) * 1000);
   };
