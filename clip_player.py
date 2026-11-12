@@ -141,7 +141,15 @@ function next(){
     info.style.opacity = 1;
     setTimeout(()=>info.style.opacity = 0, 6000);
   }
-  timer = setTimeout(next, (c.duration + 2) * 1000);
+  const buffer = parseFloat(params.get("buffer")) || 4;
+  const frame = document.getElementById("player");
+  // Backup timer in case the load signal never arrives.
+  timer = setTimeout(next, (c.duration + buffer + 8) * 1000);
+  // Restart the countdown once the clip has actually loaded.
+  frame.onload = () => {
+    clearTimeout(timer);
+    timer = setTimeout(next, (c.duration + buffer) * 1000);
+  };
 }
 function begin(){
   if(started || !clips.length) return;
